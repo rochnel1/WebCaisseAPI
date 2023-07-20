@@ -7,7 +7,8 @@ namespace WebCaisseAPI.Models
     {
         public Personnels()
         {
-            Operations = new HashSet<Operations>();
+            OperationsControlerparNavigation = new HashSet<Operations>();
+            OperationsIdpersonnelNavigation = new HashSet<Operations>();
         }
 
         public int Idpersonnel { get; set; }
@@ -18,6 +19,7 @@ namespace WebCaisseAPI.Models
         public string Codepersonnel { get; set; }
 
         public virtual Caisses IdcaisseNavigation { get; set; }
-        public virtual ICollection<Operations> Operations { get; set; }
+        public virtual ICollection<Operations> OperationsControlerparNavigation { get; set; }
+        public virtual ICollection<Operations> OperationsIdpersonnelNavigation { get; set; }
     }
 }

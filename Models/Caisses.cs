@@ -17,7 +17,6 @@ namespace WebCaisseAPI.Models
         public string Descriptioncaisse { get; set; }
         public string JournalComptable { get; set; }
 
-
         public virtual Comptegenerals IdcompteNavigation { get; set; }
         public virtual ICollection<Operations> Operations { get; set; }
         public virtual ICollection<Personnels> Personnels { get; set; }

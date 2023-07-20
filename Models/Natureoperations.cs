@@ -14,7 +14,7 @@ namespace WebCaisseAPI.Models
         public int Idnatureoperation { get; set; }
         public int Idcompte { get; set; }
         public string Description { get; set; }
-        public short Typenature { get; set; }
+        public short? Typenature { get; set; }
         public string Codenature { get; set; }
         public short Sensnature { get; set; }
 

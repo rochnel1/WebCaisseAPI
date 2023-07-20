@@ -16,8 +16,8 @@ namespace WebCaisseAPI.Models
         public string Code { get; set; }
         public DateTime? Datedebut { get; set; }
         public DateTime? Datefin { get; set; }
-        public Boolean Statut { get; set; }
-        public Boolean Cloture { get; set; }
+        public bool Statut { get; set; }
+        public bool Cloture { get; set; }
 
         public virtual ICollection<Budgets> Budgets { get; set; }
         public virtual ICollection<Operations> Operations { get; set; }

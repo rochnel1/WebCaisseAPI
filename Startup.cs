@@ -28,7 +28,7 @@ namespace WebCaisseAPI
         public void ConfigureServices(IServiceCollection services)
         {
            
-            services.AddDbContext<CaissesContext>(opts => opts.UseSqlServer(Configuration["ConnectionString:CaissesDB"]));
+           services.AddDbContext<CaissesContext>(opts => opts.UseSqlServer(Configuration["ConnectionString:CaissesDB"]));
 
             //JSON Serializer
             services.AddControllersWithViews().AddNewtonsoftJson(options =>

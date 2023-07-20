@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using WebCaisseAPI.Models;
 
 namespace WebCaisseAPI.Controllers
@@ -14,8 +16,8 @@ namespace WebCaisseAPI.Controllers
     public class OperationsController : ControllerBase
     {
         private readonly CaissesContext _context;
-
-        public OperationsController(CaissesContext context)
+        private readonly ILogger _contextLogger;
+                public OperationsController(CaissesContext context)
         {
             _context = context;
         }
@@ -24,13 +26,14 @@ namespace WebCaisseAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Operations>>> GetOperations()
         {
-            //return await _context.Operations.ToListAsync();
             var items = from o in _context.Operations
                         join c in _context.Caisses on o.Idcaisse equals c.Idcaisse
                         join personne in _context.Personnels on o.Idpersonnel equals personne.Idpersonnel
                         join periode in _context.Periodes on o.Idperiode equals periode.Idperiode
                         join e in _context.Exercices on o.Idexercice equals e.Idexercice
                         join n in _context.Natureoperations on o.Idnatureoperation equals n.Idnatureoperation
+                        join p in _context.Personnels on o.Controlerpar equals p.Idpersonnel
+
 
                         select new Operations
                         {
@@ -41,18 +44,18 @@ namespace WebCaisseAPI.Controllers
                             Sens = o.Sens,
                             Etat = o.Etat,
                             Nbrecontrole = o.Nbrecontrole,
-                            Controlerpar = o.Controlerpar,
                             Comptabilserpar = o.Comptabilserpar,
                             Datecontrole = o.Datecontrole,
                             Datecloture = o.Datecloture,
                             Datecomptabilisation = o.Datecomptabilisation,
                             Cloturepar = o.Cloturepar,
+                            Controlerpar = o.Controlerpar,
                             IdcaisseNavigation = c,
                             IdpersonnelNavigation = personne,
                             IdperiodeNavigation = periode,
                             IdexerciceNavigation = e,
                             IdnatureoperationNavigation = n,
-                            
+                            ControlerparNavigation = p
 
                         };
 
@@ -111,8 +114,97 @@ namespace WebCaisseAPI.Controllers
                 sens = operation.Sens,
                 etat = operation.Etat
             };
+            return Ok(items.ToList());
+        }
+        
+        
+        //Get api/Operations/{idcaisse}/{idpersonnel}
+        //http://localhost:5000/api/Operations/2/3
+        [HttpGet("{idcaisse}/{idpersonnel}")]
+        public async Task<ActionResult<IEnumerable<Operations>>> GetByIdsOperations(int? idCaisse, int?  idPersonnel)
+        {
+             var items = from operation in _context.Operations
+                        join b in _context.Caisses on operation.Idcaisse equals b.Idcaisse
+                        join c in _context.Personnels on operation.Idpersonnel equals c.Idpersonnel
+                        join e in _context.Natureoperations on operation.Idnatureoperation equals e.Idnatureoperation into nature from no in nature.DefaultIfEmpty()
+
+                         where (
+                              ( b.Idcaisse == idCaisse) &&
+                              (c.Idpersonnel == idPersonnel))
+                        select new
+                        {
+                caisse = b.Codecaisse,
+                caissier = c.Codepersonnel,
+                date = operation.Dateoperation,
+                montant = operation.Montant,
+                nature = no.Codenature,
+                sens = operation.Sens,
+                etat = operation.Etat
+            };
 
             return Ok(items.ToList());
+        }
+
+        [HttpGet("Cloture/{idcaisse}/{idpersonnel}")]
+        public async Task<ActionResult<IEnumerable<Operations>>> GetCloOperations(int? idCaisse, int? idPersonnel)
+        {
+            var items = from operation in _context.Operations
+                        join b in _context.Caisses on operation.Idcaisse equals b.Idcaisse
+                        join c in _context.Personnels on operation.Idpersonnel equals c.Idpersonnel
+                        join p in _context.Personnels on operation.Controlerpar equals p.Idpersonnel
+
+                        where (
+                             (b.Idcaisse == idCaisse) &&
+                             (c.Idpersonnel == idPersonnel))
+                        select new
+                        {
+                            caisse = b.Codecaisse,
+                            caissier = c.Codepersonnel,
+                            date = operation.Datecontrole,
+                            controlerpar = p.Codepersonnel,
+                            montant = operation.Montant,
+                            etat = operation.Etat
+                        };
+
+            return Ok(items.ToList());
+        }
+
+        //http://localhost:5000/api/Operations/Controle/2/2/3
+        [HttpPost("Controle/{idCaisse}/{idPersonnel}/{controleur}")]
+        public async Task<IActionResult> ControlOperations(int idCaisse, int idPersonnel, int controleur)
+        {
+            var operations = from o in _context.Operations
+                             where o.Idpersonnel == idPersonnel && o.Idcaisse == idCaisse && o.Etat == "OP"
+                             select o;
+//            string control = Convert.ToString(controleur);
+            foreach (var operation in operations)
+            {
+                operation.Etat = "CTRL";
+                operation.Datecontrole = DateTime.Now;
+                operation.Controlerpar = controleur;
+            }
+
+            _context.SaveChanges();
+            
+            return Ok("L'état des opérations a été mis à jour avec succès.");
+        }
+
+        [HttpPost("Cloture/{idCaisse}/{idPersonnel}")]
+        public async Task<IActionResult> ClotureCaisse(int idCaisse, int idPersonnel)
+        {
+            var operations = from o in _context.Operations
+                             where o.Idpersonnel == idPersonnel && o.Idcaisse == idCaisse && o.Etat == "CTRL"
+                             select o;
+            //            string control = Convert.ToString(controleur);
+            foreach (var operation in operations)
+            {
+                operation.Etat = "CLO";
+                operation.Datecloture = DateTime.Now;
+            }
+
+            _context.SaveChanges();
+
+            return Ok("L'état des opérations a été mis à jour avec succès.");
         }
 
         // PUT: api/Operations/5
@@ -153,10 +245,20 @@ namespace WebCaisseAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<Operations>> PostOperations(Operations operations)
         {
-            _context.Operations.Add(operations);
-            await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetOperations", new { id = operations.Idoperation }, operations);
+            try
+            {
+                _context.Operations.Add(operations);
+                await _context.SaveChangesAsync();
+                return CreatedAtAction("Opération ajoutée avec succès", new { id = operations.Idoperation }, operations);
+            }
+            catch (Exception ex)
+            {
+                // En cas d'erreur, vous pouvez logger l'erreur et retourner un message d'erreur approprié
+                _contextLogger.LogError(ex, "Erreur lors de la création de l'utilisateur");
+                return StatusCode((int)HttpStatusCode.InternalServerError, "Une erreur est survenue lors de la création de l'utilisateur");
+            }
+            
         }
 
         // DELETE: api/Operations/5
@@ -166,7 +268,7 @@ namespace WebCaisseAPI.Controllers
             var operations = await _context.Operations.FindAsync(id);
             if (operations == null)
             {
-                return NotFound();
+                return NotFound("Cette données n'existe pas");
             }
 
             _context.Operations.Remove(operations);

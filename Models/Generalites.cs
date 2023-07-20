@@ -7,6 +7,7 @@ namespace WebCaisseAPI.Models
     {
         public int Idgeneralite { get; set; }
         public string Raisonsocial { get; set; }
+        public string Nom { get; set; }
         public string Adresse { get; set; }
         public string Ville { get; set; }
         public string Region { get; set; }

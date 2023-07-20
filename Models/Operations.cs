@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 
-// Code scaffolded by EF Core assumes nullable reference types (NRTs) are not used or disabled.
-// If you have enabled NRTs for your project, then un-comment the following line:
-// #nullable disable
-
 namespace WebCaisseAPI.Models
 {
     public partial class Operations
@@ -21,12 +17,19 @@ namespace WebCaisseAPI.Models
         public string Sens { get; set; }
         public string Etat { get; set; }
         public int? Nbrecontrole { get; set; }
-        public string Controlerpar { get; set; }
+        public int? Controlerpar { get; set; }
         public string Comptabilserpar { get; set; }
         public DateTime? Datecontrole { get; set; }
         public DateTime? Datecloture { get; set; }
         public DateTime? Datecomptabilisation { get; set; }
-        public string Cloturepar { get; set; }
+        public int? Cloturepar { get; set; }
         public int? Regularise { get; set; }
+
+        public virtual Personnels ControlerparNavigation { get; set; }
+        public virtual Caisses IdcaisseNavigation { get; set; }
+        public virtual Exercices IdexerciceNavigation { get; set; }
+        public virtual Natureoperations IdnatureoperationNavigation { get; set; }
+        public virtual Periodes IdperiodeNavigation { get; set; }
+        public virtual Personnels IdpersonnelNavigation { get; set; }
     }
 }
