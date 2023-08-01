@@ -31,7 +31,7 @@ namespace WebCaisseAPI.Models
         {
             if (!optionsBuilder.IsConfigured)
             {
-//#warning To protect potentially sensitive information in your connection string, you should move it out of source code. See http://go.microsoft.com/fwlink/?LinkId=723263 for guidance on storing connection strings.
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. See http://go.microsoft.com/fwlink/?LinkId=723263 for guidance on storing connection strings.
                 optionsBuilder.UseSqlServer("Data Source=DESKTOP-RHNF4BL\\SQL17;Initial Catalog=caisses;Integrated Security=True;");
             }
         }
@@ -500,16 +500,24 @@ namespace WebCaisseAPI.Models
                 entity.Property(e => e.Idgpeutilisateur).HasColumnName("IDGPEUTILISATEUR");
 
                 entity.Property(e => e.Login)
+                    .IsRequired()
                     .HasColumnName("LOGIN")
                     .HasMaxLength(20)
                     .IsUnicode(false);
 
                 entity.Property(e => e.Nomutilisateur)
+                    .IsRequired()
                     .HasColumnName("NOMUTILISATEUR")
                     .HasMaxLength(20)
                     .IsUnicode(false);
 
+                entity.Property(e => e.Password)
+                    .HasColumnName("PASSWORD")
+                    .HasMaxLength(20)
+                    .IsUnicode(false);
+
                 entity.Property(e => e.Prenomutilisateur)
+                    .IsRequired()
                     .HasColumnName("PRENOMUTILISATEUR")
                     .HasMaxLength(20)
                     .IsUnicode(false);

@@ -10,6 +10,7 @@ namespace WebCaisseAPI.Models
         public string Login { get; set; }
         public string Nomutilisateur { get; set; }
         public string Prenomutilisateur { get; set; }
+        public string Password { get; set; }
 
         public virtual Groupeutilisateurs IdgpeutilisateurNavigation { get; set; }
     }

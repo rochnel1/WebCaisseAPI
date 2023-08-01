@@ -34,7 +34,6 @@ namespace WebCaisseAPI.Controllers
                         join n in _context.Natureoperations on o.Idnatureoperation equals n.Idnatureoperation
                         join p in _context.Personnels on o.Controlerpar equals p.Idpersonnel
 
-
                         select new Operations
                         {
                             Idoperation = o.Idoperation,
@@ -55,11 +54,36 @@ namespace WebCaisseAPI.Controllers
                             IdperiodeNavigation = periode,
                             IdexerciceNavigation = e,
                             IdnatureoperationNavigation = n,
-                            ControlerparNavigation = p
+                            ControlerparNavigation = p,
 
                         };
 
             return items.ToList();
+        }
+
+        [HttpGet("Compta")]
+        public async Task<ActionResult<IEnumerable<Operations>>> GetOperationsCompta()
+        {
+            var operations = await (from o in _context.Operations
+                                    join c in _context.Caisses on o.Idcaisse equals c.Idcaisse
+                                    join n in _context.Natureoperations on o.Idnatureoperation equals n.Idnatureoperation
+                                    join cmp in _context.Comptegenerals on c.Idcompte equals cmp.Idcompte
+                                    join cmp2 in _context.Comptegenerals on n.Idcompte equals cmp2.Idcompte
+                                    where o.Etat == "CLO"
+
+                                    select new 
+                                    {
+                                        Comptenature = cmp2.Numcompte,
+                                        Comptecaisse = cmp.Numcompte,
+                                        Libelle= o.Description,
+                                        Credit = o.Montant,
+                                        Debit = o.Montant,
+                                        Etat = o.Etat,
+                                        Sens = o.Sens,
+                                        Id = o.Idoperation
+                                        
+                                    }).ToListAsync();
+            return Ok(operations);
         }
 
         // GET: api/Operations/5
@@ -81,14 +105,16 @@ namespace WebCaisseAPI.Controllers
         [HttpGet("{idExercice}/{idPeriode}/{idNature}/{sens}")]
         public async Task<ActionResult<IEnumerable<Operations>>> FilteredOperations(int? idPeriode, int?  idExercice, int? idNature, int? sens)
         {
-            string Sens;
+
+            string Sens = "";
             if (sens == 0) {
                 Sens = "Encaissement";
-            } 
-            else
+            }
+            if (sens == 1)
             {
                 Sens = "Décaissment";
-            };
+            }
+
 
             var items = from operation in _context.Operations
                         join c in _context.Exercices  on operation.Idexercice equals c.Idexercice into exercice from ec in exercice.DefaultIfEmpty()
@@ -97,10 +123,10 @@ namespace WebCaisseAPI.Controllers
                         join b in _context.Caisses on operation.Idcaisse equals b.Idcaisse
                         join f in _context.Personnels on operation.Idpersonnel equals f.Idpersonnel
                         where(
-                              (!idPeriode.HasValue || pd.Idperiode == idPeriode) &&
-                              (!idPeriode.HasValue || ec.Idexercice == idExercice) &&
-                              (!idNature.HasValue || no.Idnatureoperation == idNature) &&
-                             ( !sens.HasValue || operation.Sens == Sens))
+                              (idPeriode != 0 ?(pd.Idperiode == idPeriode):true) &&
+                              (idExercice != 0?( ec.Idexercice == idExercice):true) &&
+                              (idNature != 0 ?( no.Idnatureoperation == idNature):true) &&
+                             ( sens != 2 ?( operation.Sens == Sens):true))
             select new
                         {
                 caisse = b.Codecaisse,
@@ -114,6 +140,14 @@ namespace WebCaisseAPI.Controllers
                 sens = operation.Sens,
                 etat = operation.Etat
             };
+
+            /*var a = idPeriode;
+            int b = idExercice;
+            int c = idNature;
+            int d = sens;*/
+
+            var p = items;
+            int i = p.Count();
             return Ok(items.ToList());
         }
         
@@ -200,6 +234,24 @@ namespace WebCaisseAPI.Controllers
             {
                 operation.Etat = "CLO";
                 operation.Datecloture = DateTime.Now;
+            }
+
+            _context.SaveChanges();
+
+            return Ok("L'état des opérations a été mis à jour avec succès.");
+        }
+
+        [HttpPost("Comptabiliser")]
+        public async Task<IActionResult> ComptabiliserOperations(int idCaisse, int idPersonnel)
+        {
+            var operations = from o in _context.Operations
+                             where o.Etat == "CLO"
+                             select o;
+            //            string control = Convert.ToString(controleur);
+            foreach (var operation in operations)
+            {
+                operation.Etat = "CPTA";
+                operation.Datecomptabilisation = DateTime.Now;
             }
 
             _context.SaveChanges();

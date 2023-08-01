@@ -82,7 +82,7 @@ namespace WebCaisseAPI.Controllers
             _context.Generalites.Add(generalites);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetGeneralites", new { id = generalites.Idgeneralite }, generalites);
+            return CreatedAtAction("Informations de l'entreprise enregistées", new { id = generalites.Idgeneralite }, generalites);
         }
 
         // DELETE: api/Generalites/5
