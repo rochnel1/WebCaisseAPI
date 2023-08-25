@@ -82,6 +82,7 @@ namespace WebCaisseAPI.Controllers
         [HttpGet("realisations/{idExercice}/{idPeriode}/{idNatureOperation}")]
         public async Task<ActionResult<IEnumerable<Periodes>>> GetBudgetRealiseByFilter(int idPeriode, int idExercice, int idNatureOperation)
         {
+
             var items = (
                 from a in (from op in _context.Operations
                            group op by new { op.Idexercice, op.Idperiode, op.Idnatureoperation } into grp
@@ -95,24 +96,27 @@ namespace WebCaisseAPI.Controllers
                  )
                 join b in _context.Budgets on new { a.Idexercice, a.Idnatureoperation, a.Idperiode } equals new { b.Idexercice, b.Idnatureoperation, b.Idperiode } into b_join
                 from b_joinResult in b_join.DefaultIfEmpty()
-                join c in _context.Exercices on a.Idexercice equals c.Idexercice
-                join d in _context.Periodes on a.Idperiode equals d.Idperiode
-                join e in _context.Natureoperations on a.Idnatureoperation equals e.Idnatureoperation
-                where d.Idperiode == idPeriode && c.Idexercice == idExercice && e.Idnatureoperation == idNatureOperation
+                join c in _context.Exercices on a.Idexercice equals c.Idexercice into exercice from ec in exercice.DefaultIfEmpty()
+                join d in _context.Periodes on a.Idperiode equals d.Idperiode into periode from pd in periode.DefaultIfEmpty()
+                join e in _context.Natureoperations on a.Idnatureoperation equals e.Idnatureoperation into nature from no in nature.DefaultIfEmpty()
+                where (
+                 (idPeriode != 0 ? (pd.Idperiode == idPeriode) : true) &&
+                              (idExercice != 0 ? (ec.Idexercice == idExercice) : true) &&
+                              (idNatureOperation != 0 ? (no.Idnatureoperation == idNatureOperation) : true)
+                )
                 select new
                 {
-                    exercice = c.Code,
-                    periode = d.Codeperiode,
-                    nature = e.Codenature,
+                    exercice = ec.Code,
+                    periode = pd.Codeperiode,
+                    nature = no.Codenature,
                     prevision = b_joinResult.Montantbudget,
                     realisation = a.Montant,
-                    ecart = b_joinResult.Montantbudget - a.Montant,
-
+                    ecart = no.Sensnature == 1 ?  b_joinResult.Montantbudget - a.Montant : (no.Sensnature == 2 ? a.Montant - b_joinResult.Montantbudget : 0),
                 }).ToList();
 
             return Ok(items);
         }
-
+        
 
         // GET: api/Budgets/5
         [HttpGet("{id}")]

@@ -80,7 +80,9 @@ namespace WebCaisseAPI.Controllers
                                         Debit = o.Montant,
                                         Etat = o.Etat,
                                         Sens = o.Sens,
-                                        Id = o.Idoperation
+                                        Id = o.Idoperation,
+                                        dateOperation = o.Dateoperation,
+                                        journal = c.JournalComptable
                                         
                                     }).ToListAsync();
             return Ok(operations);
@@ -150,7 +152,6 @@ namespace WebCaisseAPI.Controllers
             int i = p.Count();
             return Ok(items.ToList());
         }
-        
         
         //Get api/Operations/{idcaisse}/{idpersonnel}
         //http://localhost:5000/api/Operations/2/3

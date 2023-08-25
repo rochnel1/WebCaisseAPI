@@ -12,6 +12,9 @@ using Newtonsoft.Json.Serialization;
 using System.Threading.Tasks;
 using WebCaisseAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using System.Text;
 
 namespace WebCaisseAPI
 {
@@ -36,6 +39,26 @@ namespace WebCaisseAPI
                 .AddNewtonsoftJson(options => options.SerializerSettings.ContractResolver
                 = new DefaultContractResolver());
 
+            //#region JWT
+            var key = Encoding.ASCII.GetBytes("JWTSecret");
+            services.AddAuthentication(x =>
+            {
+                x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(x =>
+            {
+                x.RequireHttpsMetadata = false;
+                x.SaveToken = true;
+                x.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false
+                };
+            });
+            //#endregion
             services.AddControllers();
         }
 
@@ -61,5 +84,7 @@ namespace WebCaisseAPI
                 endpoints.MapControllers();
             });
         }
+
+
     }
 }

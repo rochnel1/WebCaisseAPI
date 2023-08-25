@@ -1,10 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Security.Claims;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using WebCaisseAPI.Models;
 
 namespace WebCaisseAPI.Controllers
@@ -14,37 +19,70 @@ namespace WebCaisseAPI.Controllers
     public class UtilisateursController : ControllerBase
     {
         private readonly CaissesContext _context;
+        private readonly IConfiguration _configuration;
 
-        public UtilisateursController(CaissesContext context)
+        public UtilisateursController(CaissesContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
-
+        
         // GET: api/Utilisateurs
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Utilisateurs>>> GetUtilisateurs()
         {
             //return await _context.Utilisateurs.ToListAsync();
-            var items = await
-              _context.Utilisateurs.Join(
-              _context.Groupeutilisateurs,
-              u => u.Idgpeutilisateur,
-              g => g.Idgpeutilisateur,
-              (u, g) => new
-              {
-                  u = u,
-                  g = g,
-              }).Select(x => new Utilisateurs
-              {
-                  IdUtilisateur = x.u.IdUtilisateur,
-                  Login = x.u.Login,
-                  Nomutilisateur = x.u.Nomutilisateur,
-                  Prenomutilisateur = x.u.Prenomutilisateur,
-                  IdgpeutilisateurNavigation = x.g,
-              }).ToListAsync();
+            var items = await (
+                from u in _context.Utilisateurs
+                join g in _context.Groupeutilisateurs
+                on u.Idgpeutilisateur equals g.Idgpeutilisateur
+                select new 
+                    {
+                    IdUtilisateur = u.IdUtilisateur,
+                    Login = u.Login,
+                    Nomutilisateur = u.Nomutilisateur,
+                    Prenomutilisateur = u.Prenomutilisateur,
+                    NomGroupe = g.Nomgroupe
+                }
+                ).ToListAsync();
 
-            return items;
+            return Ok(items);
         }
+
+        [HttpPost]
+        [Route("login")]
+        public async Task<ActionResult<Utilisateurs>> Login([FromBody] Utilisateurs utilisateur)
+        {
+            // Vérifiez les informations d'identification de l'utilisateur dans la base de données
+            var user = _context.Utilisateurs.FirstOrDefault(u => u.Login == utilisateur.Login && u.Password == utilisateur.Password);
+
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            // Si l'authentification réussit, générez le jeton JWT
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var jwtSecret = _configuration["Tokens:Key"]; // Récupérez la clé secrète depuis les configurations
+            var key = Encoding.ASCII.GetBytes(jwtSecret);
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new Claim[]
+                {
+                new Claim(ClaimTypes.Name, user.Login),
+                    // Vous pouvez ajouter d'autres revendications ici, si nécessaire
+                }),
+                Expires = DateTime.UtcNow.AddHours(2), // Durée de validité du jeton (1 heure ici)
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            var tokenString = tokenHandler.WriteToken(token);
+
+            return Ok(new { Token = tokenString });
+        }
+
 
         // GET: api/Utilisateurs/5
         [HttpGet("{id}")]
@@ -101,7 +139,7 @@ namespace WebCaisseAPI.Controllers
             _context.Utilisateurs.Add(utilisateurs);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetUtilisateurs", new { id = utilisateurs.IdUtilisateur }, utilisateurs);
+            return CreatedAtAction("Vous avez été enregistré avec succès !", new { id = utilisateurs.IdUtilisateur }, utilisateurs);
         }
 
         // DELETE: api/Utilisateurs/5
