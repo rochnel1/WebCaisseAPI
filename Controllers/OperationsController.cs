@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using WebCaisseAPI.Models;
+using WebCaisseAPI.Utils;
+using Objets100cLib;
 
 namespace WebCaisseAPI.Controllers
 {
@@ -88,6 +90,30 @@ namespace WebCaisseAPI.Controllers
             return Ok(operations);
         }
 
+        public List<OpCompta> GetOperationsCompta2()
+        {
+            var operations = (from o in _context.Operations
+                                    join c in _context.Caisses on o.Idcaisse equals c.Idcaisse
+                                    join n in _context.Natureoperations on o.Idnatureoperation equals n.Idnatureoperation
+                                    join cmp in _context.Comptegenerals on c.Idcompte equals cmp.Idcompte
+                                    join cmp2 in _context.Comptegenerals on n.Idcompte equals cmp2.Idcompte
+                                    where o.Etat == "CLO"
+
+                                    select new OpCompta
+                                    {
+                                        Comptenature = cmp2.Numcompte,
+                                        Comptecaisse = cmp.Numcompte,
+                                        Libelle = o.Description,
+                                        Credit = (decimal)(o.Montant == null ? 0: o.Montant),
+                                        Etat = o.Etat,
+                                        Sens = o.Sens,
+                                        Id = o.Idoperation,
+                                        dateOperation = (DateTime)(o.Dateoperation == null ? DateTime.Now : o.Dateoperation) ,
+                                        journal = c.JournalComptable
+
+                                    }).ToList< OpCompta > ();
+            return operations;
+        }
         // GET: api/Operations/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Operations>> GetOperations(int id)
@@ -258,6 +284,24 @@ namespace WebCaisseAPI.Controllers
             _context.SaveChanges();
 
             return Ok("L'état des opérations a été mis à jour avec succès.");
+        }
+
+        [HttpPost("ComptabiliserSage")]
+        public async Task<IActionResult> ComptabiliserOperationsSage()
+        {
+            var ops = GetOperationsCompta2();
+            bool resultat = true;
+            BSCPTAApplication100c oCpta = importDataToPnm.OpenBase();
+            //IPMEncoder ec = null;
+            foreach (OpCompta o in ops)
+            {
+                IPMEncoder ec = importDataToPnm.EcriturePiece(o, oCpta);
+                ec = importDataToPnm.EcritureLigne(o, ec, oCpta);
+                importDataToPnm.GenerationEcritureCpta(ec, oCpta);
+
+            }
+
+            return Ok(resultat);
         }
 
         // PUT: api/Operations/5
