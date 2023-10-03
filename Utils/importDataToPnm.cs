@@ -24,7 +24,7 @@ namespace WebCaisseAPI.Utils
             // Objet base comptable
             //private static BSCPTAApplication100c oCpta;
             // Emplacement du fichier comptable
-            private static string sPathMae = "C:\\Bijou.mae";
+            private static string sPathMae = "C:\\BIJOU.MAE";
 
             public static bool GenerationEcritureCpta(IPMEncoder mProcessEncoder, BSCPTAApplication100c oCpta)
             {
@@ -204,7 +204,7 @@ namespace WebCaisseAPI.Utils
                 {
                 BSCPTAApplication100c BaseCpta = new BSCPTAApplication100c();
                 // Affectation de l'emplacement du fichier comptable
-                BaseCpta.Name = sPathMae;
+                    BaseCpta.Name = sPathMae;
                     // Affectation du code utilisateur
                     BaseCpta.Loggable.UserName = sUid;
                     // Affectation du mot de passe
